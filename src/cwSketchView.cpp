@@ -9,8 +9,10 @@
 #include "cwSketchView.h"
 #include "cwSketchModel.h"
 #include "cwPenStrokeItem.h"
+#include "cwPenSegment.h"
 
-//
+//Qt inludes
+#include <QDebug>
 
 cwSketchView::cwSketchView(QObject *parent) :
     QObject(parent)
@@ -61,7 +63,7 @@ void cwSketchView::setSketchModel(cwSketchModel* sketchModel) {
         if(!SketchModel.isNull()) {
             disconnect(SketchModel.data(), &cwSketchModel::modelReset, this, &cwSketchView::updateAllStrokeItems);
             disconnect(SketchModel.data(), &cwSketchModel::rowsInserted, this, &cwSketchView::insertStrokes);
-            disconnect(SketchModel.data(), SIGNAL(dataChanged(QModelIndex,QModelIndex)), this, SLOT(updateStrokeData(QModelIndex,QModelIndex)));
+//            disconnect(SketchModel.data(), SIGNAL(dataChanged(QModelIndex,QModelIndex)), this, SLOT(updateStrokeData(QModelIndex,QModelIndex)));
         }
 
         SketchModel = sketchModel;
@@ -69,7 +71,7 @@ void cwSketchView::setSketchModel(cwSketchModel* sketchModel) {
         if(!SketchModel.isNull()) {
             connect(SketchModel.data(), &cwSketchModel::modelReset, this, &cwSketchView::updateAllStrokeItems);
             connect(SketchModel.data(), &cwSketchModel::rowsInserted, this, &cwSketchView::insertStrokes);
-            connect(SketchModel.data(), SIGNAL(dataChanged(QModelIndex,QModelIndex)), this, SLOT(updateStrokeData(QModelIndex,QModelIndex)));
+//            connect(SketchModel.data(), SIGNAL(dataChanged(QModelIndex,QModelIndex)), this, SLOT(updateStrokeData(QModelIndex,QModelIndex)));
         }
 
         updateAllStrokeItems();
@@ -80,7 +82,7 @@ void cwSketchView::setSketchModel(cwSketchModel* sketchModel) {
 
 void cwSketchView::insertStrokes(const QModelIndex &parent, int first, int last)
 {
-    Q_UNUSED(parent);
+//    Q_UNUSED(parent);
 
     if(SketchModel.isNull()) {
         return;
@@ -89,10 +91,23 @@ void cwSketchView::insertStrokes(const QModelIndex &parent, int first, int last)
         return;
     }
 
-    resizeStrokeItems();
+    if(parent.isValid()) {
+        //Adding a segement
+        cwPenStrokeItem* item = StrokeItems.at(parent.row());
+        if(first == last && first == SketchModel->rowCount(parent) - 1) {
+            QModelIndex index = SketchModel->index(first, -1, parent);
+            item->appendSegement(index.data(cwSketchModel::SegementRole).value<cwPenSegment>());
+        } else {
+            qDebug() << "Segement appending is the only supported action";
+        }
 
-    for(int i = first; i <= last; ++i) {
-        updateStrokeItemAt(i);
+    } else {
+        //Adding a Stroke
+        resizeStrokeItems();
+
+        for(int i = first; i <= last; ++i) {
+            updateStrokeItemAt(i);
+        }
     }
 }
 

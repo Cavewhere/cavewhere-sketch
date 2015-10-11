@@ -57,6 +57,8 @@ cwMainWindow::cwMainWindow(QWidget *parent) :
 
     qDebug() << "Looking for services";
     BluetoothServiceAgent->start();
+
+    resize(1000, 500);
 }
 
 /**
@@ -102,7 +104,7 @@ void cwMainWindow::addService(const QBluetoothServiceInfo &service)
 {
     qDebug() << "Service added:" << service.serviceUuid() << service.device().name() << service.device().address();
 
-    if(service.device().name() == "DistoX-2542") {
+//    if(service.device().name() == "DistoX-2542") {
         qDebug() << "\tName:" << service.serviceName();
         qDebug() << "\tDescription:" << service.serviceDescription();
         qDebug() << "\tIsComplete:" << service.isComplete();
@@ -110,9 +112,13 @@ void cwMainWindow::addService(const QBluetoothServiceInfo &service)
         qDebug() << "\tIsValid:" << service.isValid();
         qDebug() << "\tsocketProtocol:" << service.socketProtocol();
         qDebug() << "\tserverChannel:" << service.serverChannel();
+        qDebug() << "\tserviceClass:" << service.serviceUuid();
+        foreach(QBluetoothUuid serviceClass, service.serviceClassUuids()) {
+            qDebug() << "Class:" << serviceClass.toString();
+        }
 
-        Socket->connectToService(service);
-    }
+//        Socket->connectToService(service);
+//    }
 
 }
 

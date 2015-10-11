@@ -24,6 +24,8 @@ public:
     void setPenStroke(const cwPenStroke& stroke);
     cwPenStroke penStroke() const;
 
+    void appendSegement(const cwPenSegment& segement);
+
     QRectF boundingRect() const;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 
@@ -35,6 +37,7 @@ private:
 
     void updateBoundingBox();
     void updateSegements();
+    void appendSegementAt(int index);
 
     QLineF perpendicularLineAt(int index) const;
 

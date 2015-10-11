@@ -38,6 +38,24 @@ cwPenStroke cwPenStrokeItem::penStroke() const
 }
 
 /**
+ * @brief cwPenStrokeItem::insertSegements
+ * @param beforeIndex
+ * @param segements
+ */
+void cwPenStrokeItem::appendSegement(const cwPenSegment& segement)
+{
+    Stroke.append(segement);
+
+    if(Stroke.numberOfSegments() <= 1) {
+        return;
+    }
+
+    appendSegementAt(Stroke.numberOfSegments() - 2);
+
+    updateBoundingBox();
+}
+
+/**
  * @brief cwPenStrokeItem::boundingRect
  * @return Returns the current bounding box of the item
  */
@@ -96,20 +114,28 @@ void cwPenStrokeItem::updateSegements()
 
     //Go through the segments from left to right
     for(int i = 0; i < Stroke.numberOfSegments() - 1; ++i) {
-
-        QLineF l0 = perpendicularLineAt(i);
-        QLineF l1 = perpendicularLineAt(i + 1);
-
-        QPolygonF polygon;
-        polygon.append(l0.p1());
-        polygon.append(l0.p2());
-        polygon.append(l1.p2());
-        polygon.append(l1.p1());
-
-        Segments.append(polygon);
+        appendSegementAt(i);
     }
 
     updateBoundingBox();
+}
+
+/**
+ * @brief cwPenStrokeItem::appendSegementAt
+ * @param index
+ */
+void cwPenStrokeItem::appendSegementAt(int index)
+{
+    QLineF l0 = perpendicularLineAt(index);
+    QLineF l1 = perpendicularLineAt(index + 1);
+
+    QPolygonF polygon;
+    polygon.append(l0.p1());
+    polygon.append(l0.p2());
+    polygon.append(l1.p2());
+    polygon.append(l1.p1());
+
+    Segments.append(polygon);
 }
 
 /**

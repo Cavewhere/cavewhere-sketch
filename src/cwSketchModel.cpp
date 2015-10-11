@@ -9,7 +9,7 @@
 #include "cwSketchModel.h"
 
 cwSketchModel::cwSketchModel(QObject *parent) :
-    QAbstractListModel(parent)
+    QAbstractItemModel(parent)
 {
 }
 
@@ -22,6 +22,7 @@ QHash<int, QByteArray> cwSketchModel::roleNames() const
    QHash<int, QByteArray> roles;
    roles.insert(ColorRole, "colorRole");
    roles.insert(StrokeRole, "strokeRole");
+   roles.insert(SegementRole, "segmentRole");
    return roles;
 }
 
@@ -37,13 +38,24 @@ QVariant cwSketchModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    const cwPenStroke& stroke = Strokes.at(index.row());
+    int strokeIndex = -1;
+
+    if(index.parent().isValid()) {
+        strokeIndex = index.parent().row();
+    } else {
+        strokeIndex = index.row();
+    }
+
+    const cwPenStroke& stroke = Strokes.at(strokeIndex);
 
     switch(role) {
     case ColorRole:
         return stroke.color();
     case StrokeRole:
         return QVariant::fromValue(stroke);
+    case SegementRole:
+        //Returns a segement from the stroke
+        return QVariant::fromValue(stroke.segment(index.row()));
     default:
         return QVariant();
     }
@@ -53,11 +65,47 @@ QVariant cwSketchModel::data(const QModelIndex &index, int role) const
  * @brief cwSketchModel::rowCount
  * @param parent
  * @return Returns the number of strokes in the sketch
+ *
+ * If the parent is valid, this returns the number of segementsn in the parent stroke
  */
 int cwSketchModel::rowCount(const QModelIndex &parent) const
 {
-    Q_UNUSED(parent);
+    if(parent.isValid()) {
+        const cwPenStroke& stroke = Strokes.at(parent.row());
+        return stroke.numberOfSegments();
+    }
     return Strokes.size();
+}
+
+/**
+ * @brief cwSketchModel::parent
+ * @param child
+ * @return
+ */
+QModelIndex cwSketchModel::parent(const QModelIndex &child) const
+{
+    if((int)child.internalId() >= 0) {
+        //The child is a segement, the child internal id is the stoke index
+        return createIndex(child.internalId(), 0, -1);
+    }
+    //The child is a stroke, that has no parent
+    return QModelIndex();
+}
+
+/**
+ * @brief cwSketchModel::index
+ * @param row
+ * @param column
+ * @param parent
+ * @return
+ */
+QModelIndex cwSketchModel::index(int row, int column, const QModelIndex &parent) const
+{
+    Q_UNUSED(column);
+    if(parent.isValid()) {
+        return createIndex(row, 0, parent.row());
+    }
+    return createIndex(row, 0, -1);
 }
 
 /**
@@ -98,6 +146,8 @@ void cwSketchModel::addToLastStroke(const cwPenSegment &segment)
         }
     }
 
+    beginInsertRows(lastIndex, lastStroke.numberOfSegments(), lastStroke.numberOfSegments());
     lastStroke.append(segment);
-    emit dataChanged(lastIndex, lastIndex, QVector<int>() << StrokeRole);
+    endInsertRows();
+//    emit dataChanged(lastIndex, lastIndex, QVector<int>() << StrokeRole);
 }

@@ -15,7 +15,7 @@
 //Our includes
 #include "cwPenStroke.h"
 
-class cwSketchModel : public QAbstractListModel
+class cwSketchModel : public QAbstractItemModel
 {
     Q_OBJECT
 
@@ -24,7 +24,8 @@ public:
 
     enum Roles {
         ColorRole,
-        StrokeRole
+        StrokeRole,
+        SegementRole
     };
 
     explicit cwSketchModel(QObject *parent = 0);
@@ -32,6 +33,9 @@ public:
     QHash<int, QByteArray> roleNames() const;
     QVariant data(const QModelIndex &index, int role) const;
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent) const { Q_UNUSED(parent); return 0; }
+    QModelIndex parent(const QModelIndex &child = QModelIndex()) const;
+    QModelIndex index(int row, int column = -1, const QModelIndex &parent = QModelIndex()) const;
 
     void addStroke(const cwPenStroke& stroke);
     void addToLastStroke(const cwPenSegment& segment);

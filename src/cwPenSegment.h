@@ -11,6 +11,7 @@
 
 #include <QSharedDataPointer>
 #include <QPointF>
+#include <QVariant>
 
 class cwPenSegmentData;
 
@@ -36,5 +37,7 @@ public:
 private:
     QSharedDataPointer<cwPenSegmentData> d;
 };
+
+Q_DECLARE_METATYPE(cwPenSegment)
 
 #endif // CWPENSEGMENT_H
