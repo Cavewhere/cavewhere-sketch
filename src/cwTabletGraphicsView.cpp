@@ -27,6 +27,11 @@ cwTabletGraphicsView::cwTabletGraphicsView(QWidget *parent) :
     SketchView->setSketchModel(SketchModel);
 
     setRenderHints(QPainter::Antialiasing);
+
+    QImage cursorImage(":/images/cursor.png");
+
+    QCursor cursor(QPixmap::fromImage(cursorImage));
+    setCursor(cursor);
 }
 
 /**

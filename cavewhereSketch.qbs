@@ -29,7 +29,8 @@ Project {
 
         files: [
             "src/*.cpp",
-            "src/*.h"
+            "src/*.h",
+            "*.qrc"
         ]
     }
 }
