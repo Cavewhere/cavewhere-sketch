@@ -5,7 +5,17 @@ project(CaveWhereSketch VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Catch2 REQUIRED)
+include(FetchContent)
+
+FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG 2b60af89e23d28eefc081bc930831ee9d45ea58b # v3.8.1
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(Catch2)
+
+
 find_package(Qt6
     REQUIRED COMPONENTS
     Quick
