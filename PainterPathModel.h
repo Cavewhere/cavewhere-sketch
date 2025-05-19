@@ -3,25 +3,33 @@
 
 //Our includes
 #include "PenLineModel.h"
+#include "CaveWhereSketchLibExport.h"
+#include "AbstractPainterPathModel.h"
 
+//Qt includes
 #include <QAbstractListModel>
 #include <QPainterPath>
 #include <QPointer>
 #include <QObjectBindableProperty>
 
-
+namespace cwSketch {
 
 /**
- * @brief The PainterPathModel class
+ * @brief Model converting PenLineModel data into QPainterPath batches for efficient QML rendering.
+ *
+ * PainterPathModel transforms pen line points into QPainterPath objects,
+ * grouping finished paths by stroke width into m_finishedPaths and
+ * maintaining the currently drawn path in m_activePath.
+ *
+ * In QML, an Instantiator watches this model and creates Shape elements,
+ * reducing QML object count and batching geometry for GPU performance.
  */
-class PainterPathModel : public QAbstractListModel
+class CAVEWHERE_SKETCH_LIB_EXPORT PainterPathModel : public AbstractPainterPathModel
 {
     Q_OBJECT
     QML_ELEMENT
-    Q_PROPERTY(PenLineModel* penLineModel READ penLineModel WRITE setPenLineModel NOTIFY penLineModelChanged)
+    Q_PROPERTY(QAbstractItemModel* penLineModel READ penLineModel WRITE setPenLineModel NOTIFY penLineModelChanged)
     Q_PROPERTY(int activeLineIndex READ activeLineIndex WRITE setActiveLineIndex NOTIFY activeLineIndexChanged BINDABLE bindableActiveLineIndex)
-    // Q_PROPERTY(QPainterPath activePath READ activePath WRITE setActivePath NOTIFY activePathChanged FINAL)
-    // Q_PROPERTY(QPainterPath finalPath READ finalPath WRITE setFinalPath NOTIFY finalPathChanged FINAL)
 
 
 public:
@@ -34,11 +42,13 @@ public:
 
     //There's the active which is 0, and
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    QHash<int, QByteArray> roleNames() const override;
 
-    PenLineModel* penLineModel() const;
-    void setPenLineModel(PenLineModel* penLineModel);
+    //Implemented in AbstractPainterPathModel
+    // QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    // QHash<int, QByteArray> roleNames() const override;
+
+    QAbstractItemModel* penLineModel() const;
+    void setPenLineModel(QAbstractItemModel* penLineModel);
 
     int activeLineIndex() const { return m_activeLineIndex.value(); }
     void setActiveLineIndex(const int& activeLineIndex) { m_activeLineIndex = activeLineIndex; }
@@ -50,6 +60,9 @@ public:
         return debugPath;
     }
 
+protected:
+    const Path &path(const QModelIndex &index) const override;
+
 
 signals:
     void penLineModelChanged();
@@ -57,11 +70,6 @@ signals:
 
 private:
     Q_OBJECT_BINDABLE_PROPERTY_WITH_ARGS(PainterPathModel, int, m_activeLineIndex, -1, &PainterPathModel::activeLineIndexChanged);
-
-    struct Path {
-        QPainterPath painterPath;
-        double strokeWidth;
-    };
 
     struct ActivePath : Path {
         //Catch vectors of the top and bottom part of the polygon line, these aren't used
@@ -80,7 +88,7 @@ private:
 
     ActivePath m_activePath; //At index 0
     QList<Path> m_finishedPaths;
-    QPointer<PenLineModel> m_penLineModel;
+    QPointer<QAbstractItemModel> m_penLineModel;
     int m_previousActivePath = -1;
 
     static const int m_finishLineIndexOffset = 1;
@@ -114,7 +122,7 @@ private:
     QVector<QPointF> endCap(const QVector<PenPoint>& points, const QLineF& perpendicularLine) const;
 
     QVector<PenPoint> smoothPressure(const QVector<PenPoint>& points, int begin, int end) const;
-
+};
 };
 
 #endif // PAINTERPATHMODEL_H

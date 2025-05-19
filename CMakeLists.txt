@@ -2,8 +2,21 @@ cmake_minimum_required(VERSION 3.23)
 
 project(CaveWhereSketch VERSION 0.1 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(QT_QML_GENERATE_QMLLS_INI ON CACHE BOOL "Generate QMLLS INI file")
+
+# Include the GenerateExportHeader module
+include(GenerateExportHeader)
+
+# Include cavewhere
+add_subdirectory(cavewhere/cavewherelib)
+add_subdirectory(cavewhere/asyncfuture)
+add_subdirectory(cavewhere/QMath3d)
+add_subdirectory(cavewhere/monad)
+add_subdirectory(cavewhere/QuickQanava)
+add_subdirectory(cavewhere/dewalls)
+add_subdirectory(cavewhere/MarkScope)
 
 include(FetchContent)
 
@@ -18,8 +31,10 @@ FetchContent_MakeAvailable(Catch2)
 
 find_package(Qt6
     REQUIRED COMPONENTS
+    Core
     Quick
     QuickShapesPrivate
+    Test
 )
 
 qt_standard_project_setup(REQUIRES 6.5)
@@ -31,12 +46,34 @@ qt_add_executable(CaveWhereSketch
 qt_add_qml_module(cavewhere_sketch
     URI CaveWhereSketch
     VERSION 1.0
+    OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/CaveWhereSketch
     QML_FILES
         Main.qml
-        SOURCES PenLineModel.h PenLineModel.cpp
-        SOURCES PenLineView.h PenLineView.cpp
-        SOURCES PainterPathModel.h PainterPathModel.cpp
-        SOURCES SketchShapePath.h SketchShapePath.cpp
+        SOURCES
+        PenLineModel.h PenLineModel.cpp
+        PenLineView.h PenLineView.cpp
+        PainterPathModel.h PainterPathModel.cpp
+        SketchShapePath.h SketchShapePath.cpp
+        MovingAverageProxyModel.cpp MovingAverageProxyModel.h
+        ExclusivePointHandler.h ExclusivePointHandler.cpp
+        RootData.h RootData.cpp
+        AbstractPainterPathModel.h AbstractPainterPathModel.cpp
+        CenterlinePainterModel.h CenterlinePainterModel.cpp
+        QML_FILES SketchPage.qml
+        TripCompactPage.qml
+        QML_FILES ShapePathInstantiator.qml
+)
+
+# Generate the export header for windows
+generate_export_header(cavewhere_sketch
+    BASE_NAME CAVEWHERE_SKETCH_LIB
+    EXPORT_MACRO_NAME CAVEWHERE_SKETCH_LIB_EXPORT
+    EXPORT_FILE_NAME CaveWhereSketchLibExport.h
+)
+
+# For including the CaveWhereSketchLibExport.h
+target_include_directories(cavewhere_sketch PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -53,13 +90,18 @@ set_target_properties(CaveWhereSketch PROPERTIES
 target_link_libraries(cavewhere_sketch
     PUBLIC
     Qt6::Quick
+    Qt6::Core
+    cavewherelib
     PRIVATE
+    Qt6::QuickPrivate
     Qt6::QuickShapesPrivate
 )
 
 target_include_directories(cavewhere_sketch
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE
+    ${Qt6Quick_PRIVATE_INCLUDE_DIRS}
 )
 
 target_link_libraries(CaveWhereSketch
@@ -79,7 +121,8 @@ target_compile_definitions(cavewhere_sketch
 # )
 
 
-qt_add_executable(cavewhere-sketch-test)
+qt_add_executable(cavewhere-sketch-test
+    testcases/test_CenterlinePainterModel.cpp)
 
 set_target_properties(cavewhere-sketch-test PROPERTIES
     AUTOMOC ON
@@ -95,6 +138,7 @@ target_link_libraries(cavewhere-sketch-test
     PRIVATE
     cavewhere_sketch
     Catch2::Catch2
+    Qt6::Test
 )
 
 
