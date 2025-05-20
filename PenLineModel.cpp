@@ -5,9 +5,39 @@
 //Our includes
 #include "PenLineModel.h"
 
+class PenLineModelUndoCommand : public QUndoCommand {
+public:
+    PenLineModelUndoCommand(PenLineModel *model) : QUndoCommand("Draw Line", nullptr), m_penLineModel(model), m_oldLines(model->m_lines) {}
+
+    void finish()
+    {
+        m_newLines = m_penLineModel->m_lines;
+    }
+
+    void undo() override
+    {
+        m_penLineModel->beginResetModel();
+        m_penLineModel->m_lines = m_oldLines;
+        m_penLineModel->endResetModel();
+    }
+
+    void redo() override
+    {
+        m_penLineModel->beginResetModel();
+        m_penLineModel->m_lines = m_newLines;
+        m_penLineModel->endResetModel();
+    }
+
+private:
+    PenLineModel *m_penLineModel;
+    QVector<PenLine> m_oldLines, m_newLines;
+};
+
 PenLineModel::PenLineModel(QObject* parent)
-    : QAbstractItemModel(parent)
+    : QAbstractItemModel(parent), m_undoStack(parent)
 {
+    // TODO: this sounds like about enough
+    m_undoStack.setUndoLimit(32);
 }
 
 int PenLineModel::rowCount(const QModelIndex &parent) const {
@@ -82,21 +112,30 @@ QModelIndex PenLineModel::parent(const QModelIndex &child) const
 
 int PenLineModel::addNewLine()
 {
+    if (m_activeUndoCommand != nullptr) {
+        delete m_activeUndoCommand;
+    }
+    m_activeUndoCommand = new PenLineModelUndoCommand(this);
+
     int lastIndex = m_lines.size();
     PenLine line;
     line.width = m_currentStrokeWidth;
-    qDebug() << "newline:" << line.width;
 
-    addLine(line);
+    beginInsertRows(QModelIndex(), m_lines.size(), m_lines.size());
+    m_lines.append(line);
+    endInsertRows();
+
     Q_ASSERT(lastIndex == m_lines.size() - 1);
     return lastIndex;
 }
 
-void PenLineModel::addLine(const PenLine &line) {
-    // qDebug() << "-------------- Add line -------------";
-    beginInsertRows(QModelIndex(), m_lines.size(), m_lines.size());
-    m_lines.append(line);
-    endInsertRows();
+Q_INVOKABLE void PenLineModel::finishNewLine()
+{
+    Q_ASSERT(m_activeUndoCommand != nullptr);
+    m_activeUndoCommand->finish();
+    m_undoStack.push(m_activeUndoCommand);
+    m_activeUndoCommand = nullptr;
+    emit undoStackChanged();
 }
 
 void PenLineModel::addPoint(int lineIndex, PenPoint point)
@@ -114,7 +153,7 @@ void PenLineModel::addPoint(int lineIndex, PenPoint point)
 
     // Append the point to the specified PenLine.
     auto& points =  m_lines[lineIndex].points;
-    auto appendPoint = [&](PenPoint point) {
+    auto appendPoint = [&](const PenPoint &point) {
         int lastIndex = points.size();
 
         // Notify that the data for this row has changed so that any views update.
@@ -140,10 +179,31 @@ void PenLineModel::addPoint(int lineIndex, PenPoint point)
 
 }
 
+void PenLineModel::undo() {
+    m_undoStack.undo();
+    emit undoStackChanged();
+}
+
+void PenLineModel::redo() {
+    m_undoStack.redo();
+    emit undoStackChanged();
+}
+
 void PenLineModel::clear() {
+    if (m_activeUndoCommand != nullptr) {
+        delete m_activeUndoCommand;
+    }
+    m_activeUndoCommand = new PenLineModelUndoCommand(this);
+
     beginResetModel();
     m_lines.clear();
     endResetModel();
+
+    m_activeUndoCommand->finish();
+    m_undoStack.push(m_activeUndoCommand);
+    m_activeUndoCommand = nullptr;
+
+    emit undoStackChanged();
 }
 
 
