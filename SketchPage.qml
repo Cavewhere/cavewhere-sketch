@@ -16,6 +16,12 @@ StandardPage {
             console.log("onCurrentStrokeWidthChanged!" + penModel.currentStrokeWidth + (penModel.currentStrokeWidth.toFixed(1) == 2.5))
             featuresId.checked = windowId.fuzzyEquals(penModel.currentStrokeWidth, 2.5);
         }
+        onUndoStackChanged: {
+            console.log("onUndoStackChanged")
+            undoId.enabled = penModel.canUndo()
+            redoId.enabled = penModel.canRedo()
+            clearId.enabled = penModel.canClear()
+        }
     }
 
     MovingAverageProxyModel {
@@ -78,6 +84,35 @@ StandardPage {
                 text: "Bigger add 0.1 to " + penModel.currentStrokeWidth.toFixed(2)
                 onClicked: {
                     penModel.currentStrokeWidth += 0.1
+                }
+            }
+
+            GroupBox {
+                ColumnLayout {
+                    QC.Button {
+                        id: undoId
+                        text: "Undo"
+                        onClicked: {
+                            penModel.undo();
+                        }
+                    }
+
+                    QC.Button {
+                        id: redoId
+                        text: "Redo"
+                        onClicked: {
+                            penModel.redo();
+                        }
+                    }
+
+                    QC.Button {
+                        id: clearId
+                        text: "Clear"
+                        onClicked: {
+                            penModel.clear();
+                        }
+                    }
+
                 }
             }
         }
@@ -214,6 +249,8 @@ StandardPage {
             if(active) {
                 painterPathModel.activeLineIndex = penModel.rowCount();
                 penModel.addNewLine();
+            } else {
+                penModel.finishNewLine();
             }
         }
 

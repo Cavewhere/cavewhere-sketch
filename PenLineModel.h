@@ -6,9 +6,12 @@
 #include <QQmlEngine>
 #include <QPointF>
 #include <QObjectBindableProperty>
+#include <QUndoStack>
 
 //Our includes
 #include "CaveWhereSketchLibExport.h"
+
+class PenLineModelUndoCommand;
 
 // A simple structure representing a point with a specific width.
 class CAVEWHERE_SKETCH_LIB_EXPORT PenPoint {
@@ -65,9 +68,18 @@ public:
 
     // Utility methods to add or clear lines.
     Q_INVOKABLE int addNewLine();
-    void addLine(const PenLine& line);
     Q_INVOKABLE void addPoint(int lineIndex, PenPoint point);
-    void clear();
+
+    // This creates and pushes an undo command for the current last-line.
+    Q_INVOKABLE void finishNewLine();
+
+    Q_INVOKABLE void undo();
+    Q_INVOKABLE void redo();
+    Q_INVOKABLE void clear();
+
+    Q_INVOKABLE bool canUndo() const { return m_undoStack.canUndo(); }
+    Q_INVOKABLE bool canRedo() const { return m_undoStack.canRedo(); }
+    Q_INVOKABLE bool canClear() const { return !m_lines.empty(); }
 
     Q_INVOKABLE PenPoint penPoint(QPointF point, double width)
     {
@@ -80,11 +92,15 @@ public:
 
 signals:
     void currentStrokeWidthChanged();
-
+    void undoStackChanged();
 
 private:
+    friend class PenLineModelUndoCommand;
+
     Q_OBJECT_BINDABLE_PROPERTY_WITH_ARGS(PenLineModel, double, m_currentStrokeWidth, 2.5, &PenLineModel::currentStrokeWidthChanged);
     QVector<PenLine> m_lines;
+    QUndoStack m_undoStack;
+    PenLineModelUndoCommand *m_activeUndoCommand;
 
 };
 
