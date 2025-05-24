@@ -7,12 +7,8 @@
 
 class PenLineModelUndoCommand : public QUndoCommand {
 public:
-    PenLineModelUndoCommand(PenLineModel *model) : QUndoCommand("Draw Line", nullptr), m_penLineModel(model), m_oldLines(model->m_lines) {}
-
-    void finish()
-    {
-        m_newLines = m_penLineModel->m_lines;
-    }
+    PenLineModelUndoCommand(PenLineModel *model, const QVector<PenLine> &oldLines, const QVector<PenLine> &newLines) :
+        QUndoCommand("Draw Line", nullptr), m_penLineModel(model), m_oldLines(oldLines), m_newLines(newLines) {}
 
     void undo() override
     {
@@ -29,7 +25,7 @@ public:
     }
 
 private:
-    PenLineModel *m_penLineModel;
+    PenLineModel *m_penLineModel;  // not owned
     QVector<PenLine> m_oldLines, m_newLines;
 };
 
@@ -112,10 +108,7 @@ QModelIndex PenLineModel::parent(const QModelIndex &child) const
 
 int PenLineModel::addNewLine()
 {
-    if (m_activeUndoCommand != nullptr) {
-        delete m_activeUndoCommand;
-    }
-    m_activeUndoCommand = new PenLineModelUndoCommand(this);
+    m_startLines = m_lines;
 
     int lastIndex = m_lines.size();
     PenLine line;
@@ -131,10 +124,8 @@ int PenLineModel::addNewLine()
 
 Q_INVOKABLE void PenLineModel::finishNewLine()
 {
-    Q_ASSERT(m_activeUndoCommand != nullptr);
-    m_activeUndoCommand->finish();
-    m_undoStack.push(m_activeUndoCommand);
-    m_activeUndoCommand = nullptr;
+    m_undoStack.push(new PenLineModelUndoCommand(this, m_startLines, m_lines));
+    m_startLines.clear();
     emit undoStackChanged();
 }
 
@@ -190,19 +181,8 @@ void PenLineModel::redo() {
 }
 
 void PenLineModel::clear() {
-    if (m_activeUndoCommand != nullptr) {
-        delete m_activeUndoCommand;
-    }
-    m_activeUndoCommand = new PenLineModelUndoCommand(this);
-
-    beginResetModel();
-    m_lines.clear();
-    endResetModel();
-
-    m_activeUndoCommand->finish();
-    m_undoStack.push(m_activeUndoCommand);
-    m_activeUndoCommand = nullptr;
-
+    QVector<PenLine> empty;
+    m_undoStack.push(new PenLineModelUndoCommand(this, m_lines, empty));
     emit undoStackChanged();
 }
 

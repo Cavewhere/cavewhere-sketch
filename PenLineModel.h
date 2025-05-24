@@ -98,9 +98,8 @@ private:
     friend class PenLineModelUndoCommand;
 
     Q_OBJECT_BINDABLE_PROPERTY_WITH_ARGS(PenLineModel, double, m_currentStrokeWidth, 2.5, &PenLineModel::currentStrokeWidthChanged);
-    QVector<PenLine> m_lines;
+    QVector<PenLine> m_lines, m_startLines;
     QUndoStack m_undoStack;
-    PenLineModelUndoCommand *m_activeUndoCommand;
 
 };
 
