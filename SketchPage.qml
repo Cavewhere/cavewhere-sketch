@@ -85,27 +85,28 @@ StandardPage {
                 ColumnLayout {
                     QC.Button {
                         id: undoId
-                        enabled: penModel.undo.canUndo
+                        enabled: penModel.undoStack.canUndo
                         text: "Undo"
                         onClicked: {
-                            penModel.undo.undo();
+                            penModel.undoStack.undo();
                         }
                     }
 
                     QC.Button {
                         id: redoId
-                        enabled: penModel.undo.canRedo
+                        enabled: penModel.undoStack.canRedo
                         text: "Redo"
                         onClicked: {
-                            penModel.undo.redo();
+                            penModel.undoStack.redo();
                         }
                     }
 
                     QC.Button {
                         id: clearId
                         text: "Clear"
+                        enabled: penModel.canClearUndoStack
                         onClicked: {
-                            penModel.clear();
+                            penModel.clearUndoStack();
                         }
                     }
 
