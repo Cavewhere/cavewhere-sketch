@@ -30,10 +30,11 @@ private:
 };
 
 PenLineModel::PenLineModel(QObject* parent)
-    : QAbstractItemModel(parent), m_undoStack(parent)
+    : QAbstractItemModel(parent)
 {
     // TODO: this sounds like about enough
-    m_undoStack.setUndoLimit(32);
+    m_undo.setParent(parent);
+    m_undo.setUndoLimit(32);
 }
 
 int PenLineModel::rowCount(const QModelIndex &parent) const {
@@ -124,9 +125,8 @@ int PenLineModel::addNewLine()
 
 Q_INVOKABLE void PenLineModel::finishNewLine()
 {
-    m_undoStack.push(new PenLineModelUndoCommand(this, m_startLines, m_lines));
+    m_undo.push(new PenLineModelUndoCommand(this, m_startLines, m_lines));
     m_startLines.clear();
-    emit undoStackChanged();
 }
 
 void PenLineModel::addPoint(int lineIndex, PenPoint point)
@@ -170,20 +170,9 @@ void PenLineModel::addPoint(int lineIndex, PenPoint point)
 
 }
 
-void PenLineModel::undo() {
-    m_undoStack.undo();
-    emit undoStackChanged();
-}
-
-void PenLineModel::redo() {
-    m_undoStack.redo();
-    emit undoStackChanged();
-}
-
 void PenLineModel::clear() {
     QVector<PenLine> empty;
-    m_undoStack.push(new PenLineModelUndoCommand(this, m_lines, empty));
-    emit undoStackChanged();
+    m_undo.push(new PenLineModelUndoCommand(this, m_lines, empty));
 }
 
 

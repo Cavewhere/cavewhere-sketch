@@ -16,12 +16,6 @@ StandardPage {
             console.log("onCurrentStrokeWidthChanged!" + penModel.currentStrokeWidth + (penModel.currentStrokeWidth.toFixed(1) == 2.5))
             featuresId.checked = windowId.fuzzyEquals(penModel.currentStrokeWidth, 2.5);
         }
-        onUndoStackChanged: {
-            console.log("onUndoStackChanged")
-            undoId.enabled = penModel.canUndo()
-            redoId.enabled = penModel.canRedo()
-            clearId.enabled = penModel.canClear()
-        }
     }
 
     MovingAverageProxyModel {
@@ -91,17 +85,19 @@ StandardPage {
                 ColumnLayout {
                     QC.Button {
                         id: undoId
+                        enabled: penModel.undo.canUndo
                         text: "Undo"
                         onClicked: {
-                            penModel.undo();
+                            penModel.undo.undo();
                         }
                     }
 
                     QC.Button {
                         id: redoId
+                        enabled: penModel.undo.canRedo
                         text: "Redo"
                         onClicked: {
-                            penModel.redo();
+                            penModel.undo.redo();
                         }
                     }
 
@@ -256,7 +252,7 @@ StandardPage {
 
         onPointChanged: {
             if(active && handler.point.pressure > 0.0) {
-                console.log("Point.pressure:" + handler.point.position + " " + handler.point.pressure + active)
+                //console.log("Point.pressure:" + handler.point.position + " " + handler.point.pressure + active)
                 _mappedHandlerPoint = sketchPageId.mapToItem(containerId, handler.point.position);
 
                 let penPoint = penModel.penPoint(_mappedHandlerPoint, handler.point.pressure)

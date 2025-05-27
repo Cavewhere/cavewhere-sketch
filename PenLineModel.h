@@ -47,6 +47,7 @@ class CAVEWHERE_SKETCH_LIB_EXPORT PenLineModel : public QAbstractItemModel {
     QML_ELEMENT
 
     Q_PROPERTY(double currentStrokeWidth READ currentStrokeWidth WRITE setCurrentStrokeWidth NOTIFY currentStrokeWidthChanged BINDABLE bindableCurrentStrokeWidth)
+    Q_PROPERTY(QUndoStack* undo READ undo)
 
 public:
     enum PenLineRoles {
@@ -73,17 +74,18 @@ public:
     // This creates and pushes an undo command for the current last-line.
     Q_INVOKABLE void finishNewLine();
 
-    Q_INVOKABLE void undo();
-    Q_INVOKABLE void redo();
     Q_INVOKABLE void clear();
 
-    Q_INVOKABLE bool canUndo() const { return m_undoStack.canUndo(); }
-    Q_INVOKABLE bool canRedo() const { return m_undoStack.canRedo(); }
     Q_INVOKABLE bool canClear() const { return !m_lines.empty(); }
 
     Q_INVOKABLE PenPoint penPoint(QPointF point, double width)
     {
         return PenPoint(point, width);
+    }
+
+    QUndoStack* undo()
+    {
+        return &m_undo;
     }
 
     double currentStrokeWidth() const { return m_currentStrokeWidth.value(); }
@@ -92,15 +94,13 @@ public:
 
 signals:
     void currentStrokeWidthChanged();
-    void undoStackChanged();
 
 private:
     friend class PenLineModelUndoCommand;
 
     Q_OBJECT_BINDABLE_PROPERTY_WITH_ARGS(PenLineModel, double, m_currentStrokeWidth, 2.5, &PenLineModel::currentStrokeWidthChanged);
     QVector<PenLine> m_lines, m_startLines;
-    QUndoStack m_undoStack;
-
+    QUndoStack m_undo;
 };
 
 
