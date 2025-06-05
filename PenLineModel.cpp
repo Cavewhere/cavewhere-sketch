@@ -5,10 +5,39 @@
 //Our includes
 #include "PenLineModel.h"
 
-class PenLineModelUndoCommand : public QUndoCommand {
+class PenLineModelAddLineCommand : public QUndoCommand {
 public:
-    PenLineModelUndoCommand(PenLineModel *model, const QVector<PenLine> &oldLines, const QVector<PenLine> &newLines) :
-        QUndoCommand("Draw Line", nullptr), m_penLineModel(model), m_oldLines(oldLines), m_newLines(newLines) {}
+    PenLineModelAddLineCommand(PenLineModel *model, PenLine addedLine) :
+        QUndoCommand("Draw Line", nullptr), m_penLineModel(model), m_addedLine(std::move(addedLine)) {}
+
+    void undo() override
+    {
+        Q_ASSERT(!m_penLineModel->m_lines.isEmpty());
+        size_t index = m_penLineModel->m_lines.size() - 1;
+        qDebug() << "PenLineModelAddLineCommand::undo " << index << " " << index;
+        m_penLineModel->beginRemoveRows(QModelIndex(), index, index);
+        m_penLineModel->m_lines.removeLast();
+        m_penLineModel->endRemoveRows();
+    }
+
+    void redo() override
+    {
+        size_t index = m_penLineModel->m_lines.size();
+        qDebug() << "PenLineModelAddLineCommand::redo " << index << " " << index;
+        m_penLineModel->beginInsertRows(QModelIndex(),index, index);
+        m_penLineModel->m_lines.append(m_addedLine);
+        m_penLineModel->endInsertRows();
+    }
+
+private:
+    PenLineModel *m_penLineModel;  // not owned
+    PenLine m_addedLine;
+};
+
+class PenLineModelSwapAllLinesCommand : public QUndoCommand {
+public:
+    PenLineModelSwapAllLinesCommand(PenLineModel *model, const QVector<PenLine> &oldLines, const QVector<PenLine> &newLines) :
+        QUndoCommand("", nullptr), m_penLineModel(model), m_oldLines(oldLines), m_newLines(newLines) {}
 
     void undo() override
     {
@@ -107,8 +136,6 @@ QModelIndex PenLineModel::parent(const QModelIndex &child) const
 
 int PenLineModel::addNewLine()
 {
-    m_startLines = m_lines;
-
     int lastIndex = m_lines.size();
     PenLine line;
     line.width = m_currentStrokeWidth;
@@ -123,8 +150,9 @@ int PenLineModel::addNewLine()
 
 Q_INVOKABLE void PenLineModel::finishNewLine()
 {
-    m_undoStack->push(new PenLineModelUndoCommand(this, m_startLines, m_lines));
-    m_startLines.clear();
+    Q_ASSERT(!m_lines.isEmpty());
+    auto addedLine = m_lines.takeLast();
+    m_undoStack->push(new PenLineModelAddLineCommand(this, std::move(addedLine)));
 }
 
 void PenLineModel::addPoint(int lineIndex, PenPoint point)
@@ -170,7 +198,7 @@ void PenLineModel::addPoint(int lineIndex, PenPoint point)
 
 void PenLineModel::clearUndoStack() {
     QVector<PenLine> empty;
-    m_undoStack->push(new PenLineModelUndoCommand(this, m_lines, empty));
+    m_undoStack->push(new PenLineModelSwapAllLinesCommand(this, m_lines, empty));
 }
 
 

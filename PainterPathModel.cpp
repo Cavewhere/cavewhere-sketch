@@ -187,6 +187,45 @@ void PainterPathModel::setPenLineModel(QAbstractItemModel* penLineModel) {
                         }
                     });
 
+            connect(m_penLineModel, &PenLineModel::rowsAboutToBeRemoved, this,
+                    [this](const QModelIndex &parent, int first, int last) {
+                        if (m_activeLineIndex >= first && m_activeLineIndex <= last) {
+                            m_activeLineIndex = -1;
+                        }
+                        if (parent == QModelIndex() && first == last) {
+                            const auto lineWidthAt = [this](int i) {
+                                return this->m_penLineModel->data(this->m_penLineModel->index(i, 0), PenLineModel::LineRole)
+                                    .value<PenLine>().width;
+                            };
+                            const double lineWidth = lineWidthAt(first);
+                            auto it = indexOfFinalPaths(lineWidth);
+                            if(it != m_finishedPaths.end()) {
+                                int modelIndexInt = it - m_finishedPaths.begin() + m_finishLineIndexOffset;
+                                it->painterPath.clear();
+                                for(int i = 0; i < m_penLineModel->rowCount(); i++) {
+                                    if (lineWidthAt(i) == lineWidth && i != first) {
+                                        addOrUpdateFinishPath(i);
+                                    }
+                                }
+                                if (it->painterPath.isEmpty()) {
+                                    // all gone, remove the painterPath
+                                    int index = it - m_finishedPaths.begin() + m_finishLineIndexOffset;
+                                    qDebug() << "All gone, removing " << index - m_finishLineIndexOffset;
+                                    beginRemoveRows(QModelIndex(), index, index);
+                                    it = m_finishedPaths.erase(it);
+                                    endRemoveRows();
+                                }
+                            }
+                        } else {
+                            // If we haven't handled it above, just rebuild the world
+                            // TODO: could probably optimize further but currently this shouldn't ever happen
+                            qDebug() << "Unhandled case in rowsAboutToBeRemoved!";
+                            m_previousActivePath = m_activeLineIndex;
+                            m_activeLineIndex = -1;
+                            rebuildFinalPath();
+                        }
+                    });
+
             // Handle modifications to existing pen lines
             connect(m_penLineModel, &PenLineModel::dataChanged, this,
                     [this](const QModelIndex &topLeft,

@@ -11,7 +11,8 @@
 //Our includes
 #include "CaveWhereSketchLibExport.h"
 
-class PenLineModelUndoCommand;
+class PenLineModelAddLineCommand;
+class PenLineModelSwapAllLinesCommand;
 
 // A simple structure representing a point with a specific width.
 class CAVEWHERE_SKETCH_LIB_EXPORT PenPoint {
@@ -110,13 +111,14 @@ signals:
     void sensitivityChanged();
 
 private:
-    friend class PenLineModelUndoCommand;
+    friend class PenLineModelAddLineCommand;
+    friend class PenLineModelSwapAllLinesCommand;
 
     Q_OBJECT_BINDABLE_PROPERTY_WITH_ARGS(PenLineModel, double, m_currentStrokeWidth, 2.5, &PenLineModel::currentStrokeWidthChanged);
     Q_OBJECT_BINDABLE_PROPERTY_WITH_ARGS(PenLineModel, double, m_viewScale, 1.0, &PenLineModel::viewScaleChanged);
     Q_OBJECT_BINDABLE_PROPERTY_WITH_ARGS(PenLineModel, double, m_sensitivity, 0.25, &PenLineModel::sensitivityChanged);
 
-    QVector<PenLine> m_lines, m_startLines;
+    QVector<PenLine> m_lines;
     QUndoStack *m_undoStack;
 };
 
